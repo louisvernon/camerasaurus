@@ -10,11 +10,11 @@ class Camera:
 		self.name = name
 		self.path = path
 	def start_recording(self):
-		filename = self.path + self.name + str(int(time.time())) + ".mp4"
+		filename = self.path + self.name + str(int(time.time())) + ".ogg"
 		print filename
 		rtsp_path = "rtsp://" + self.user + ":" + self.password + "@" + self.ip + ":554"
 		print rtsp_path
-		self.instance=vlc.Instance("--sout=file/mp4:" + filename)
+		self.instance=vlc.Instance("--sout=file/avi:" + filename)
 		self.player = self.instance.media_player_new()
 		self.player.set_mrl(rtsp_path)
 		self.player.play()		
@@ -22,6 +22,7 @@ class Camera:
 		self.player.stop()
 	def take_snapshot(self):
 		filename = self.path + self.name + str(int(time.time())) + ".jpg"
+		print vlc.libvlc_video_take_snapshot(self.player, 0, "test.jpg", 0, 0)
 
 
 		
@@ -30,12 +31,9 @@ def record_stream(camera):
 
 
 
-camera = Camera(ip="192.168.1.107",user="admin",password="security",name="Garage",path="")
+camera = Camera(ip="192.168.1.84x",user="admin",password="password",name="Location",path="")
 
 camera.start_recording()
-time.sleep(5)
+time.sleep(100)
 camera.stop_recording()
-time.sleep(5)
-camera.start_recording()
-time.sleep(5)
-camera.stop_recording()
+camera.take_snapshot()
