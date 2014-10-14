@@ -5,11 +5,12 @@ import os
 import subprocess
 
 devnull = open(os.devnull, 'w')
-ffmpeg = "./ffmpeg"
+ffmpeg = "ffmpeg"
 
 class Camera:
-	def __init__(self, ip, user, password, name, path):
+	def __init__(self, ip, port, user, password, name, path):
 		self.ip = ip
+		self.port = port
 		self.user = user
 		self.password = password
 		self.name = name
@@ -17,23 +18,28 @@ class Camera:
 		
 	def start_recording(self):
 		filename = self.path + self.name + str(int(time.time())) + "_%04d.mkv"
-		rtsp_path = "rtsp://" + self.user + ":" + self.password + "@" + self.ip + ":554"
+		rtsp_path = "rtsp://" + self.user + ":" + self.password + "@" + self.ip + ":" +  str(self.port)
 		command = [ffmpeg, "-i", rtsp_path, "-codec", "copy",  "-map", "0", "-f", "segment", "-segment_time", "3600", filename]
 		print filename
-		self.recorder = subprocess.Popen(command, stdout=devnull, stderr=devnull)
+		self.recorder = subprocess.Popen(command)
 		
 	def stop_recording(self):
-		self.recorder.kill()	
+		self.recorder.kill()
 	def take_snapshot(self):
 		filename = self.path + self.name + str(int(time.time())) + ".jpg"
-		urllib.urlretrieve("http://" + self.user + ":" + self.password + "@" + self.ip + "/Streaming/Channels/1/picture", filename)
+		rtsp_path = "rtsp://" + self.user + ":" + self.password + "@" + self.ip + ":" +  str(self.port)
+		command = [ffmpeg, "-i", rtsp_path, "-vf", "select=\"eq(pict_type\,I)\"", "-vframes", "1", "-qscale", "0", filename]
+		print command
+		subprocess.Popen(command)
+		return filename		
 		
 def record_stream(camera):
 	print camera
 
 
 
-camera = Camera(ip="192.168.1.86",user="admin",password="security",name="Front_Door",path="tmp/")
-camera.start_recording()
-time.sleep(100)
-camera.stop_recording()
+camera = Camera(ip="home.nxsfan.co.uk", port=25001, user="admin",password="security",name="Front_Door",path="tmp/")
+#camera.start_recording()
+print camera.take_snapshot()
+time.sleep(2)
+#camera.stop_recording()
