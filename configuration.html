@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>
+
+var cameras;
+function validate_camera(camera_name) {
+   $.post( "http://localhost:8000/validate_camera", camera_name).done(function( data ) {
+            if (data.indexOf("Failed")>=0) {
+                alert(data);
+            }
+            else {
+                alert(data);
+                populate_cameras();
+            }
+     });
+}
+
+
+
+
+function edit_camera(camera_name) {
+    $('#camera_name').val(cameras[camera_name]["camera_name"]); 
+    $('#camera_url').val(cameras[camera_name]["camera_url"]);
+    $('#camera_storage_path').val(cameras[camera_name]["camera_storage_path"]);    
+    $('#camera_edit').prop('checked', true);
+    $('#camera_name').prop('disabled', true);
+    $("#add_camera_div").show();
+}
+
+function delete_camera(camera_name) {
+     $.post( "http://localhost:8000/delete_camera", camera_name).done(function( data ) {
+            if (data.indexOf("Failed")>=0) {
+                alert(data);
+            }
+            else {
+                populate_cameras();
+            }
+     });
+}
+
+function populate_cameras() {
+     $.ajax({url: "http://localhost:8000/get_cameras", success: function(result){
+         result = JSON.parse(result);
+         var innerHTML = "";
+         if (result == "false") {
+             innerHTML += "<h2>No cameras found</h2>"
+         }
+         else {
+             cameras = result;
+             console.log(cameras);
+             // get names of all the cameras
+             var keys = [];
+             for (var key in cameras) {
+                 if (cameras.hasOwnProperty(key)) {
+                     keys.push(key);
+                 }
+              console.log(keys);
+             }
+             
+             if (keys.length>0) {
+                 for(var i = 0; i < keys.length; i++) {
+                     //console.log(keys[i]);
+                    innerHTML += parse_camera(cameras[keys[i]]);
+                 }    
+             }
+             else {
+                 innerHTML += "<h2>No cameras found</h2>"
+             }
+         
+         }
+         
+         $("#camera_list").html(innerHTML);
+     }});
+ }
+
+
+ function parse_camera(camera) {
+     var html = "<div id='camera'>";
+     html += "<br><h2>" + camera["camera_name"] + "</h2>\n";
+     html += "<br>Camera URL:" + camera["camera_url"];
+     html += "<br>Storage Path:" + camera["camera_storage_path"];     
+     html += "<br>Preview: <br><img src='" + camera["camera_name"] + ".jpg'";
+     html += " onerror='this.onerror = null; this.src=\"camera_icon.png\"' height='200' /><br>\n";
+     html += "<button onclick='validate_camera(\"" + camera["camera_name"] + "\")'>Validate</button>";
+     html += "<button onclick='edit_camera(\"" + camera["camera_name"] + "\")'>Edit</button>";
+     html += "<button onclick='delete_camera(\"" + camera["camera_name"] + "\")'>Delete</button>";     
+     html += "</div>";
+     return html;
+ }
+
+$(document).ready(function(){
+    
+    $("#add_camera_div").hide();
+    
+    $( "#add_camera_button" ).click(function() {
+        // validate data
+        
+        var camera_name = $('#camera_name').val();
+        var camera_url = $('#camera_url').val();
+        var camera_storage_path = $('#camera_storage_path').val();
+        if (camera_name.length ==0) {
+            alert("Please provide a camera name.");
+            return;
+        }
+        if (camera_url.length ==0) {
+            alert("Please provide a camera url.");
+            return;
+        }
+        if (camera_storage_path.length ==0) {
+            alert("Please provide a camera storage path.");
+            return;
+        }
+         var form_data = $('#add_camera_form').serialize();
+         
+         $.post( "http://localhost:8000/add_camera", form_data).done(function( data ) {
+            if (data.indexOf("Failed")>=0) {
+                alert(data);
+            }
+            else {
+                $('#camera_name').val(""); 
+                $('#camera_url').val("");
+                $('#camera_storage_path').val("");
+                populate_cameras();
+                
+            }
+        });
+    });
+    
+    $('#camera_edit').change(function(){
+        alert(this.checked);
+        if (!this.checked) {
+            $('#camera_name').prop('disabled', false);
+        }
+    });
+        
+    $( "#add_camera_img" ).click(function() {
+         $("#add_camera_div").show();
+    });
+    
+    populate_cameras();
+});
+</script>
+</head>
+<body>
+
+<div id="camera_list"></div>
+
+<img id="add_camera_img" src="add.png" alt="ADD">
+
+<div id="add_camera_div">
+<form id="add_camera_form">
+<br>Camera Name: <input type="text" name="camera_name" id="camera_name">
+<br>Camera URL:  <input type="text" name="camera_url" id="camera_url">
+<br>Camera Storage Path:  <input type="text" name="camera_storage_path" id="camera_storage_path">
+<br>Edit/Replace (if exists): <input type="checkbox" name="camera_edit" id="camera_edit">
+<br><input id="add_camera_button" type="button" value="Add Camera">
+</form>
+</div>
+     
+
+</body>
+</html>
