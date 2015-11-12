@@ -57,6 +57,8 @@ class myHandler(BaseHTTPRequestHandler):
 				f = open(curdir + sep + self.path)
 				self.send_response(200)
 				self.send_header('Content-type',mimetype)
+				#self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+				#self.send_header('Pragma','no-cache')
 				self.end_headers()
 				self.wfile.write(f.read())
 				f.close()

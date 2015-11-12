@@ -3,6 +3,7 @@ import configuration
 import cgi
 import string
 import control
+import os
 
 # receive handler for web server and return json encoded camera configuration
 def get_cameras(web_handler):
@@ -157,19 +158,30 @@ def validate_camera(web_handler):
     
     
     
+    writable = os.access(camera_settings[camera_name]["camera_storage_path"], os.W_OK)
+    print "storage path", camera_settings[camera_name]["camera_storage_path"]
+    if(not writable):
+        web_handler.wfile.write("Failed:Path")
+        return
+    
     # create camera instance!
     try:
         camera_control = control.Camera(name=camera_name, url=camera_settings[camera_name]["camera_url"])
     except:
-        web_handler.wfile.write("Failed:Camera Instantiation")
+        web_handler.wfile.write("Failed:Instantiation")
         return
+
     
+    # generate snapshot    
     try:
-        camera_control.take_snapshot(camera_name + ".jpg")
+        exit_code = camera_control.take_snapshot(camera_name + ".jpg")
+        if(exit_code!=0):
+            web_handler.wfile.write("Failed:FFMPEG")
+            return                
     except:
-        web_handler.wfile.write("Failed:Camera Snapshot")
+        web_handler.wfile.write("Failed:Snapshot")
         return
     web_handler.wfile.write("Validated")
-    # generate snapshot
+
     
     

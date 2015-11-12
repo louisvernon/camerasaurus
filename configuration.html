@@ -1,24 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="stylesheet" type="text/css" href="page.css">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+<style type="text/css">
+.camera {
+    padding: 40px;
+}
+
+.validate-class {
+    margin-left: auto;
+    margin-right: auto;
+    color: black;
+    background-color: white;
+    text-align: center;
+    border-radius: 25px;
+    padding: 40px;
+}
+    
+#schedule_table td {
+  width:20px;
+  height:30px;
+  text-align:center;
+  vertical-align:middle;
+  background-color:#ccc;
+  border:1px solid #fff;
+}
+
+#schedule_table td.highlighted {
+  background-color:#999;
+
+}
+</style>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script src="jquery.lightbox_me.js"></script>
 <script>
 
+
 var cameras;
+function schedule_camera(camera_name) {
+    $("#schedule_table tr").each(function () {
+
+    $('td', this).each(function () {
+        console.log($(this).hasClass("highlighted"));
+     })
+
+})
+     $("#schedule_div").lightbox_me();
+}
+
 function validate_camera(camera_name) {
-   $.post( "http://localhost:8000/validate_camera", camera_name).done(function( data ) {
+   var innerHTML = '<h3>Validating <i>' + camera_name + '</i></h3>' + '<img src="loading.gif">';
+   $("#validation_box").html(innerHTML);
+   $("#validation_box").lightbox_me();
+   $.post( "http://localhost:8000/validate_camera", camera_name).done(function( data ) {   
             if (data.indexOf("Failed")>=0) {
-                alert(data);
+                innerHTML = '<h3>Validating <i>' + camera_name + '</i></h3><p>Settings validation failed.</p>';
+                if (data.indexOf("Path")>=0) {
+                    innerHTML += '<p>Storage path is not writable!</p><p style="color:red;">' + cameras[camera_name]["camera_storage_path"] + '</p>';
+                }
+                if (data.indexOf("Instantiation")>=0) {
+                    innerHTML += '<p>Camera object could not be instantiated?</p>';
+                }
+                if (data.indexOf("FFMPEG")>=0) {
+                    innerHTML += '<p>FFMPEG aborted abnormally!</p><p style="color:red;">' + cameras[camera_name]["camera_url"] + '</p>';
+                }                
+                
             }
             else {
-                alert(data);
+                innerHTML = '<h3>Validating <i>' + camera_name + '</i></h3><p>Settings validation succesful. <br/>Preview updated</p>';
                 populate_cameras();
             }
+            $("#validation_box").html(innerHTML);
      });
 }
 
 
-
+function purge_form() {
+    $('#camera_name').val(""); 
+    $('#camera_url').val("");
+    $('#camera_storage_path').val("");
+    $('#camera_edit').prop('checked', false);    
+}
 
 function edit_camera(camera_name) {
     $('#camera_name').val(cameras[camera_name]["camera_name"]); 
@@ -26,28 +90,39 @@ function edit_camera(camera_name) {
     $('#camera_storage_path').val(cameras[camera_name]["camera_storage_path"]);    
     $('#camera_edit').prop('checked', true);
     $('#camera_name').prop('disabled', true);
-    $("#add_camera_div").show();
+    //$("#add_camera_div").show();
+    $("#add_camera_div").lightbox_me({
+    centered: true, 
+    onClose: function() { 
+           purge_form();
+        }
+    });
 }
 
 function delete_camera(camera_name) {
-     $.post( "http://localhost:8000/delete_camera", camera_name).done(function( data ) {
-            if (data.indexOf("Failed")>=0) {
-                alert(data);
-            }
-            else {
-                populate_cameras();
-            }
-     });
+    if(window.confirm("Are you sure you want to delete " + camera_name + "?"))
+    {
+        $.post( "http://localhost:8000/delete_camera", camera_name).done(function( data ) {
+               if (data.indexOf("Failed")>=0) {
+                   alert(data);
+               }
+               else {
+                   populate_cameras();
+               }
+        });
+    }
 }
 
 function populate_cameras() {
      $.ajax({url: "http://localhost:8000/get_cameras", success: function(result){
          result = JSON.parse(result);
          var innerHTML = "";
+         
          if (result == "false") {
              innerHTML += "<h2>No cameras found</h2>"
          }
          else {
+             
              cameras = result;
              console.log(cameras);
              // get names of all the cameras
@@ -60,10 +135,12 @@ function populate_cameras() {
              }
              
              if (keys.length>0) {
+                innerHTML += "<div id=\"accordion\">"
                  for(var i = 0; i < keys.length; i++) {
                      //console.log(keys[i]);
                     innerHTML += parse_camera(cameras[keys[i]]);
-                 }    
+                 }
+                 innerHTML += "</div>"
              }
              else {
                  innerHTML += "<h2>No cameras found</h2>"
@@ -72,20 +149,25 @@ function populate_cameras() {
          }
          
          $("#camera_list").html(innerHTML);
+        $(function() {
+            $( "#accordion" ).accordion();
+        });
      }});
  }
 
 
  function parse_camera(camera) {
-     var html = "<div id='camera'>";
-     html += "<br><h2>" + camera["camera_name"] + "</h2>\n";
-     html += "<br>Camera URL:" + camera["camera_url"];
-     html += "<br>Storage Path:" + camera["camera_storage_path"];     
-     html += "<br>Preview: <br><img src='" + camera["camera_name"] + ".jpg'";
-     html += " onerror='this.onerror = null; this.src=\"camera_icon.png\"' height='200' /><br>\n";
+     var html = "<h3>" + camera["camera_name"] + "</h3>\n";
+     html += "<div id='camera' class='camera'><table>";
+     //html += "<br><h2>" + camera["camera_name"] + "</h2>\n";
+     html += "<tr><td>Camera URL</td><td>" + camera["camera_url"] + "</td></tr>";
+     html += "<tr><td>Storage Path</td><td>" + camera["camera_storage_path"]  + "</td></tr></table>";    
+     html += "Preview: </td><td><img src='" + camera["camera_name"] + ".jpg'";
+     html += " onerror='this.onerror = null; this.src=\"camera_icon.png\"' height='200' /><br />";
      html += "<button onclick='validate_camera(\"" + camera["camera_name"] + "\")'>Validate</button>";
      html += "<button onclick='edit_camera(\"" + camera["camera_name"] + "\")'>Edit</button>";
-     html += "<button onclick='delete_camera(\"" + camera["camera_name"] + "\")'>Delete</button>";     
+     html += "<button onclick='delete_camera(\"" + camera["camera_name"] + "\")'>Delete</button>";
+     html += "<button onclick='schedule_camera(\"" + camera["camera_name"] + "\")'>Schedule</button>";     
      html += "</div>";
      return html;
  }
@@ -93,6 +175,7 @@ function populate_cameras() {
 $(document).ready(function(){
     
     $("#add_camera_div").hide();
+    $("#validation_box").hide();
     
     $( "#add_camera_button" ).click(function() {
         // validate data
@@ -112,16 +195,17 @@ $(document).ready(function(){
             alert("Please provide a camera storage path.");
             return;
         }
+         $('#camera_name').prop('disabled', false);
          var form_data = $('#add_camera_form').serialize();
+         $('#camera_name').prop('disabled', true);
          
          $.post( "http://localhost:8000/add_camera", form_data).done(function( data ) {
             if (data.indexOf("Failed")>=0) {
                 alert(data);
             }
             else {
-                $('#camera_name').val(""); 
-                $('#camera_url').val("");
-                $('#camera_storage_path').val("");
+                $("#add_camera_div").trigger('close');
+                purge_form();
                 populate_cameras();
                 
             }
@@ -136,29 +220,76 @@ $(document).ready(function(){
     });
         
     $( "#add_camera_img" ).click(function() {
-         $("#add_camera_div").show();
+         //$("#add_camera_div").show();
+         $("#add_camera_div").lightbox_me({
+        centered: true, 
+        onClose: function() { 
+               purge_form();
+            }
+        });
     });
     
     populate_cameras();
+    
+    $(function () {
+    var isMouseDown = false,
+    isHighlighted;
+    $("#schedule_table td")
+    .mousedown(function () {
+      isMouseDown = true;
+      $(this).toggleClass("highlighted");
+      isHighlighted = $(this).hasClass("highlighted");
+      return false; // prevent text selection
+    })
+    .mouseover(function () {
+      if (isMouseDown) {
+        $(this).toggleClass("highlighted", isHighlighted);
+      }
+    })
+    .bind("selectstart", function () {
+      return false;
+    })
+    
+    $(document)
+    .mouseup(function () {
+      isMouseDown = false;
+     });
+    });
+   
 });
 </script>
 </head>
 <body>
 
-<div id="camera_list"></div>
-
 <img id="add_camera_img" src="add.png" alt="ADD">
 
+<div id="camera_list" style="width:500px;"></div>
+
 <div id="add_camera_div">
-<form id="add_camera_form">
-<br>Camera Name: <input type="text" name="camera_name" id="camera_name">
-<br>Camera URL:  <input type="text" name="camera_url" id="camera_url">
-<br>Camera Storage Path:  <input type="text" name="camera_storage_path" id="camera_storage_path">
-<br>Edit/Replace (if exists): <input type="checkbox" name="camera_edit" id="camera_edit">
-<br><input id="add_camera_button" type="button" value="Add Camera">
+<form id="add_camera_form" class="basic-grey">
+<h1>Add/Edit Camera
+<span>This will not validate your camera's settings.</span>
+</h1>    
+<labeL><span>Camera Name</span><input type="text" name="camera_name" id="camera_name" placeholder="Front_Door"></labeL>
+<label><span>Camera URL</span><input type="text" name="camera_url" id="camera_url" placeholder="rtsp://user:password@camera_ip:554"></label>
+<label><span>Camera Storage Path</span><input type="text" name="camera_storage_path" id="camera_storage_path" placeholder="/tmp"></label>
+<label><span>Edit/Replace</span><input type="checkbox" name="camera_edit" id="camera_edit"></label>
+<label><span>&nbsp;</span><input id="add_camera_button" type="button" value="Add Camera" class="button"></label>
 </form>
 </div>
-     
-
+<div id="validation_box" class='validate-class'></div>     
+<div style="display:none;"><img src="loading.gif"></div>
+<div id="schedule_div" class='validate-class' style="display:none;">
+    <table cellpadding="0" cellspacing="0" id="schedule_table">
+    <tr><th>&nbsp;</th><th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th></tr>
+    <tr><th>Monday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><th>Tuesday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><th>Wednesday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><th>Thursday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><th>Friday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><th>Saturday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><th>Sunday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    </table>
+</div>
 </body>
 </html>
