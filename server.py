@@ -21,16 +21,22 @@ class myHandler(BaseHTTPRequestHandler):
 		if self.path == "/delete_camera":
 			configuration.delete_camera(self)
 		if self.path == "/validate_camera":
-			configuration.validate_camera(self)			
+			configuration.validate_camera(self)
+		if self.path == "/update_schedule":
+			configuration.update_schedule(self)
 		
 	def do_GET(self):
-		print self.path
+		# strip and discard hash part from url to avoid caching
+		self.path = self.path.split('?')[0]
+		
 		if self.path=="/":
 			self.path="/no_image.gif"
-
 		try:
 			#Check the file extension required and
 			#set the right mime type
+			if self.path == "/get_cameras":
+				configuration.get_cameras(self)
+				return				
 
 			sendReply = False            
 			if self.path.endswith(".html"):
@@ -62,9 +68,9 @@ class myHandler(BaseHTTPRequestHandler):
 				self.end_headers()
 				self.wfile.write(f.read())
 				f.close()
+			else:
+				raise IOError()
 			
-			if self.path == "/get_cameras":
-				configuration.get_cameras(self)
 		
 			
 			return

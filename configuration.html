@@ -39,15 +39,82 @@
 
 
 var cameras;
+var accordion;
 function schedule_camera(camera_name) {
+    // retrieve the 2d json schedule, loop over cells and update accordingly
+    var day_counter = -1;
+    var hour_counter;
+    //console.log(cameras[camera_name]["schedule"][0][0]);  
     $("#schedule_table tr").each(function () {
+        hour_counter = 0;
+        $('td', this).each(function () {
+            
+            //console.log(cameras[camera_name]["schedule"][day_counter][hour_counter])
+            //console.log(day_counter, hour_counter)
+            if (cameras[camera_name]["schedule"][day_counter][hour_counter]==1) {
+                $(this).addClass("highlighted");
+            }
+            else {
+                $(this).removeClass("highlighted")
+            }
+            hour_counter+=1;
+            //console.log($(this).hasClass("highlighted"));
+            //cameras[camera_name]["camera_storage_path"]
+        }) ;
+        day_counter+=1;
 
-    $('td', this).each(function () {
-        console.log($(this).hasClass("highlighted"));
-     })
+    });
+    
+    //inject custom button
+    var innerHTML = "<button onclick='set_camera_schedule(\"" + camera_name + "\")'>Update Schedule</button>";
+    $("#set_camera_schedule_button").html(innerHTML);
+    $("#camera_schedule_div").lightbox_me();
+}
 
-})
-     $("#schedule_div").lightbox_me();
+
+
+function makeid(size)
+{
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for( var i=0; i < size; i++ )
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
+}
+
+function set_camera_schedule(camera_name) {
+    var day_counter = -1;
+    var hour_counter;
+    //get current schedule and update camera instance
+    console.log(cameras[camera_name]["schedule"]);
+    $("#schedule_table tr").each(function () {
+        hour_counter = 0;
+        $('td', this).each(function () {
+            
+            if ($(this).hasClass("highlighted")) {
+                cameras[camera_name]["schedule"][day_counter][hour_counter]=1;
+            }
+            else {
+                cameras[camera_name]["schedule"][day_counter][hour_counter]=0;
+            }
+            hour_counter+=1;
+         });
+        day_counter+=1;
+    });
+    console.log(cameras[camera_name]["schedule"]);
+    
+    
+    //update schedule on backend
+    $.post( "http://localhost:8000/update_schedule", "camera="+JSON.stringify(cameras[camera_name])).done(function( data ) {
+     if (data.indexOf("Failed")>=0) {
+          alert(data);
+      }
+      else {
+          populate_cameras();
+      }
+    });
 }
 
 function validate_camera(camera_name) {
@@ -60,19 +127,28 @@ function validate_camera(camera_name) {
                 if (data.indexOf("Path")>=0) {
                     innerHTML += '<p>Storage path is not writable!</p><p style="color:red;">' + cameras[camera_name]["camera_storage_path"] + '</p>';
                 }
-                if (data.indexOf("Instantiation")>=0) {
+                else if (data.indexOf("Instantiation")>=0) {
                     innerHTML += '<p>Camera object could not be instantiated?</p>';
                 }
-                if (data.indexOf("FFMPEG")>=0) {
+                else if (data.indexOf("FFMPEG")>=0) {
                     innerHTML += '<p>FFMPEG aborted abnormally!</p><p style="color:red;">' + cameras[camera_name]["camera_url"] + '</p>';
-                }                
+                }
+                else {
+                    alert(data);
+                }
                 
             }
             else {
                 innerHTML = '<h3>Validating <i>' + camera_name + '</i></h3><p>Settings validation succesful. <br/>Preview updated</p>';
-                populate_cameras();
             }
             $("#validation_box").html(innerHTML);
+            populate_cameras();
+            var accord_position = parseInt($("#" + camera_name).attr("accord_position"));
+            var active = accordion.accordion( "option", "active" );
+            console.log(accord_position);
+            console.log(active);
+            //console.log(accordion.accordion(('activate', 2));
+            accordion.accordion( "option", "active", active );
      });
 }
 
@@ -81,7 +157,8 @@ function purge_form() {
     $('#camera_name').val(""); 
     $('#camera_url').val("");
     $('#camera_storage_path').val("");
-    $('#camera_edit').prop('checked', false);    
+    $('#camera_edit').prop('checked', false);
+    $('#camera_name').prop('disabled', false);
 }
 
 function edit_camera(camera_name) {
@@ -114,6 +191,7 @@ function delete_camera(camera_name) {
 }
 
 function populate_cameras() {
+    
      $.ajax({url: "http://localhost:8000/get_cameras", success: function(result){
          result = JSON.parse(result);
          var innerHTML = "";
@@ -124,21 +202,20 @@ function populate_cameras() {
          else {
              
              cameras = result;
-             console.log(cameras);
              // get names of all the cameras
              var keys = [];
              for (var key in cameras) {
                  if (cameras.hasOwnProperty(key)) {
                      keys.push(key);
                  }
-              console.log(keys);
+              //console.log(keys);
              }
              
              if (keys.length>0) {
                 innerHTML += "<div id=\"accordion\">"
                  for(var i = 0; i < keys.length; i++) {
                      //console.log(keys[i]);
-                    innerHTML += parse_camera(cameras[keys[i]]);
+                    innerHTML += parse_camera(cameras[keys[i]], i);
                  }
                  innerHTML += "</div>"
              }
@@ -149,20 +226,21 @@ function populate_cameras() {
          }
          
          $("#camera_list").html(innerHTML);
-        $(function() {
-            $( "#accordion" ).accordion();
-        });
+         accordion = $( "#accordion" ).accordion({active: 0});
+         
+        
      }});
  }
 
 
- function parse_camera(camera) {
+ function parse_camera(camera, accord_position) {
+     //console.log(camera["schedule"]);
      var html = "<h3>" + camera["camera_name"] + "</h3>\n";
-     html += "<div id='camera' class='camera'><table>";
+     html += "<div id='" + camera["camera_name"] + "' class='camera' accord_position='" + accord_position.toString() + "'><table>";
      //html += "<br><h2>" + camera["camera_name"] + "</h2>\n";
      html += "<tr><td>Camera URL</td><td>" + camera["camera_url"] + "</td></tr>";
      html += "<tr><td>Storage Path</td><td>" + camera["camera_storage_path"]  + "</td></tr></table>";    
-     html += "Preview: </td><td><img src='" + camera["camera_name"] + ".jpg'";
+     html += "Preview: </td><td><img src='" + encodeURIComponent(camera["camera_name"]).replace(/%20/g,'+') + ".jpg?" + makeid(5) +"'";
      html += " onerror='this.onerror = null; this.src=\"camera_icon.png\"' height='200' /><br />";
      html += "<button onclick='validate_camera(\"" + camera["camera_name"] + "\")'>Validate</button>";
      html += "<button onclick='edit_camera(\"" + camera["camera_name"] + "\")'>Edit</button>";
@@ -172,14 +250,7 @@ function populate_cameras() {
      return html;
  }
 
-$(document).ready(function(){
-    
-    $("#add_camera_div").hide();
-    $("#validation_box").hide();
-    
-    $( "#add_camera_button" ).click(function() {
-        // validate data
-        
+ function add_camera() {
         var camera_name = $('#camera_name').val();
         var camera_url = $('#camera_url').val();
         var camera_storage_path = $('#camera_storage_path').val();
@@ -210,7 +281,19 @@ $(document).ready(function(){
                 
             }
         });
-    });
+    
+ }
+ 
+$(document).ready(function(){
+    
+    $("#add_camera_div").hide();
+    $("#validation_box").hide();
+    
+    $( "#add_camera_button" ).click(function() {
+        // validate data
+         add_camera();
+        });
+
     
     $('#camera_edit').change(function(){
         alert(this.checked);
@@ -279,7 +362,7 @@ $(document).ready(function(){
 </div>
 <div id="validation_box" class='validate-class'></div>     
 <div style="display:none;"><img src="loading.gif"></div>
-<div id="schedule_div" class='validate-class' style="display:none;">
+<div id="camera_schedule_div" class='validate-class' style="display:none;">
     <table cellpadding="0" cellspacing="0" id="schedule_table">
     <tr><th>&nbsp;</th><th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th></tr>
     <tr><th>Monday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
@@ -290,6 +373,7 @@ $(document).ready(function(){
     <tr><th>Saturday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
     <tr><th>Sunday</th><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
     </table>
+    <div id="set_camera_schedule_button"></div>
 </div>
 </body>
 </html>
