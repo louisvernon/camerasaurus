@@ -112,7 +112,12 @@ function set_camera_schedule(camera_name) {
           alert(data);
       }
       else {
-          populate_cameras();
+        populate_cameras();
+        var innerHTML = $("#set_camera_schedule_button").html();
+        innerHTML += "<p>Schedule Updated</p>";
+        $("#set_camera_schedule_button").html(innerHTML);
+        var active = accordion.accordion( "option", "active" );
+        accordion.accordion( "option", "active", active );
       }
     });
 }
@@ -346,7 +351,7 @@ $(document).ready(function(){
 
 <img id="add_camera_img" src="add.png" alt="ADD">
 
-<div id="camera_list" style="width:500px;"></div>
+<div id="camera_list"></div>
 
 <div id="add_camera_div">
 <form id="add_camera_form" class="basic-grey">
