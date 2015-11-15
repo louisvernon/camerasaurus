@@ -8,8 +8,9 @@ import configuration
 
 PORT_NUMBER = 8000
 
-def return_exception(self):
+def return_exception(self, e):
 	print "Crap, exception!"
+	print e.message, e.args
 	self.send_response(200)
 	self.send_header('Content-type',"text/html")
 	self.end_headers()
@@ -26,16 +27,16 @@ class myHandler(BaseHTTPRequestHandler):
 		print self.path
 		if self.path == "/add_camera":
 			try: configuration.add_camera(self)
-			except: return_exception(self)
+			except Exception as e: return_exception(self, e)
 		if self.path == "/delete_camera":
 			try: configuration.delete_camera(self)
-			except: return_exception(self)
+			except Exception as e: return_exception(self, e)
 		if self.path == "/validate_camera":
 			try: configuration.validate_camera(self)
-			except: return_exception(self)
+			except Exception as e: return_exception(self, e)
 		if self.path == "/update_schedule":
 			try: configuration.update_schedule(self)
-			except: return_exception(self)
+			except Exception as e: return_exception(self, e)
 		
 	def do_GET(self):
 		# strip and discard hash part from url to avoid caching
