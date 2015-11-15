@@ -64,7 +64,7 @@ def add_camera(web_handler):
                 web_handler.wfile.write("Failed:Name")
                 return
             else:
-                schedule = camera_settings[camera["camera_name"]][schedule]
+                schedule = camera_settings[camera["camera_name"]]["schedule"]
         else:
             web_handler.wfile.write("Failed:Name")
             return
