@@ -13,13 +13,13 @@ def get_cameras(web_handler):
     web_handler.end_headers()
     # read configuration from disk
     
-    #try:
-    settings_file = open("cameras.json")
-    settings_json = string.join(settings_file.readlines(), "")
-    camera_settings = json.loads(settings_json)
-    settings_file.close()
-    #except:
-     #   camera_settings = "false"
+    try:
+        settings_file = open("cameras.json")
+        settings_json = string.join(settings_file.readlines(), "")
+        camera_settings = json.loads(settings_json)
+        settings_file.close()
+    except:
+        camera_settings = {}
     camera_settings = json.dumps(camera_settings)
     print camera_settings
     
