@@ -107,7 +107,7 @@ function set_camera_schedule(camera_name) {
     
     
     //update schedule on backend
-    $.post( "http://localhost:8000/update_schedule", "camera="+JSON.stringify(cameras[camera_name])).done(function( data ) {
+    $.post( "update_schedule", "camera="+JSON.stringify(cameras[camera_name])).done(function( data ) {
      if (data.indexOf("Failed")>=0) {
           alert(data);
       }
@@ -126,7 +126,7 @@ function validate_camera(camera_name) {
    var innerHTML = '<h3>Validating <i>' + camera_name + '</i></h3>' + '<img src="loading.gif">';
    $("#validation_box").html(innerHTML);
    $("#validation_box").lightbox_me();
-   $.post( "http://localhost:8000/validate_camera", camera_name).done(function( data ) {   
+   $.post( "validate_camera", camera_name).done(function( data ) {   
             if (data.indexOf("Failed")>=0) {
                 innerHTML = '<h3>Validating <i>' + camera_name + '</i></h3><p>Settings validation failed.</p>';
                 if (data.indexOf("Path")>=0) {
@@ -184,7 +184,7 @@ function edit_camera(camera_name) {
 function delete_camera(camera_name) {
     if(window.confirm("Are you sure you want to delete " + camera_name + "?"))
     {
-        $.post( "http://localhost:8000/delete_camera", camera_name).done(function( data ) {
+        $.post( "delete_camera", camera_name).done(function( data ) {
                if (data.indexOf("Failed")>=0) {
                    alert(data);
                }
@@ -197,7 +197,7 @@ function delete_camera(camera_name) {
 
 function populate_cameras() {
     
-     $.ajax({url: "http://localhost:8000/get_cameras", success: function(result){
+     $.ajax({url: "get_cameras", success: function(result){
          result = JSON.parse(result);
          var innerHTML = "";
          
@@ -275,7 +275,7 @@ function populate_cameras() {
          var form_data = $('#add_camera_form').serialize();
          $('#camera_name').prop('disabled', true);
          
-         $.post( "http://localhost:8000/add_camera", form_data).done(function( data ) {
+         $.post( "add_camera", form_data).done(function( data ) {
             if (data.indexOf("Failed")>=0) {
                 alert(data);
             }
