@@ -8,6 +8,13 @@ import configuration
 
 PORT_NUMBER = 8000
 
+def return_exception():
+	self.send_response(200)
+	self.send_header('Content-type',"text/html")
+	self.end_headers()
+	self.wfile.write("FAILED:Exception")	
+
+
 
 #This class will handles any incoming request from
 #the browser
@@ -17,13 +24,17 @@ class myHandler(BaseHTTPRequestHandler):
 	def do_POST(self):
 		print self.path
 		if self.path == "/add_camera":
-			configuration.add_camera(self)
+			try: configuration.add_camera(self)
+			except: return_exception(self)
 		if self.path == "/delete_camera":
-			configuration.delete_camera(self)
+			try: configuration.delete_camera(self)
+			except: return_exception(self)
 		if self.path == "/validate_camera":
-			configuration.validate_camera(self)
+			try: configuration.validate_camera(self)
+			except: return_exception(self)
 		if self.path == "/update_schedule":
-			configuration.update_schedule(self)
+			try: configuration.update_schedule(self)
+			except: return_exception(self)
 		
 	def do_GET(self):
 		# strip and discard hash part from url to avoid caching
@@ -35,7 +46,8 @@ class myHandler(BaseHTTPRequestHandler):
 			#Check the file extension required and
 			#set the right mime type
 			if self.path == "/get_cameras":
-				configuration.get_cameras(self)
+				try: configuration.get_cameras(self)
+				except: return_exception(self)
 				return				
 
 			sendReply = False            
