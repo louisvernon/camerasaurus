@@ -8,7 +8,8 @@ import configuration
 
 PORT_NUMBER = 8000
 
-def return_exception():
+def return_exception(self):
+	print "Crap, exception!"
 	self.send_response(200)
 	self.send_header('Content-type',"text/html")
 	self.end_headers()

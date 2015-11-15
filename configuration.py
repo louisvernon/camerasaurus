@@ -191,7 +191,6 @@ def validate_camera(web_handler):
     # generate snapshot
     print camera_name, type(camera_name)
     snapshot_file = urllib.quote_plus(camera_name) + ".jpg"
-    exit_code = camera_control.take_snapshot(snapshot_file)
     
     try:
         exit_code = camera_control.take_snapshot(snapshot_file)
